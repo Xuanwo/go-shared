@@ -3,6 +3,7 @@ package buffer
 import (
 	"bytes"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,6 +45,43 @@ func TestBufferWrites(t *testing.T) {
 			assert.Equal(t, defaultSize, buf.Cap(), "Expected buffer capacity to remain constant.")
 		})
 	}
+}
+
+func bytesTestKeyA() []byte {
+	buf := GlobalBytesPool().Get()
+	defer buf.Free()
+
+	buf.AppendString("a")
+
+	return buf.Bytes()
+}
+func bytesTestKeyB() []byte {
+	buf := GlobalBytesPool().Get()
+	defer buf.Free()
+
+	buf.AppendString("b")
+
+	return buf.Bytes()
+}
+func bytesTestWorker(t *testing.T, fn func() []byte, s []byte, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	for i := 0; i < 100; i++ {
+		assert.Equal(t, s, fn(), "Expected bytes equal.")
+	}
+}
+
+// Test case for concurrent use of bytes.
+func TestBufferBytes(t *testing.T) {
+	wg := &sync.WaitGroup{}
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(2)
+		go bytesTestWorker(t, bytesTestKeyA, []byte("a"), wg)
+		go bytesTestWorker(t, bytesTestKeyB, []byte("b"), wg)
+	}
+
+	wg.Wait()
 }
 
 func BenchmarkBuffers(b *testing.B) {

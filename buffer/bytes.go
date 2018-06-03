@@ -33,7 +33,9 @@ func (b *BytesBuffer) Cap() int {
 
 // Bytes returns a mutable reference to the underlying byte slice.
 func (b *BytesBuffer) Bytes() []byte {
-	return b.bs
+	s := make([]byte, len(b.bs))
+	copy(s, b.bs)
+	return s
 }
 
 // String returns a string copy of the underlying byte slice.
